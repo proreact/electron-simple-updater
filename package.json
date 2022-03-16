@@ -10,7 +10,7 @@
     "lint": "eslint src && tsc --noEmit",
     "postversion": "git push && git push --tags",
     "preversion": "npm run test:full",
-    "prepack": "npm run test:full"
+    "prepare": "npm run test:full"
   },
   "typings": "src/index.d.ts",
   "repository": "megahertz/electron-simple-updater",
