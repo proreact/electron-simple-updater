@@ -37,16 +37,16 @@ class Linux extends Platform {
     }
 
     electronApi.offApp('will-quit', this.quitAndInstall);
-
+    // See: https://stackoverflow.com/questions/1712033/replacing-a-running-executable-in-linux/1712051#1712051
     const updateScript = `
       if [ "\${RESTART_REQUIRED}" = 'true' ]; then
-        cp -f "\${UPDATE_FILE}" "\${APP_IMAGE}"
+        rm -f "\${APP_IMAGE}";
+        mv "\${UPDATE_FILE}" "\${APP_IMAGE}";
         (exec "\${APP_IMAGE}") & disown $!
       else
-        (sleep 2 && cp -f "\${UPDATE_FILE}" "\${APP_IMAGE}") & disown $!
+        (sleep 2 && rm "\${APP_IMAGE}" &&  mv "\${UPDATE_FILE}" "\${APP_IMAGE}") & disown $!
       fi
       kill "\${OLD_PID}" $(ps -h --ppid "\${OLD_PID}" -o pid)
-      rm "\${UPDATE_FILE}"
     `;
 
     const proc = spawn('/bin/bash', ['-c', updateScript], {
