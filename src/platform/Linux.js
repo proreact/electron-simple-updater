@@ -1,9 +1,6 @@
 'use strict';
 
-const {
-  spawn,
-  execFileSync,
-} = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -20,8 +17,8 @@ class Linux extends Platform {
   }
 
   /**
-     * @param {SimpleUpdater.Meta} meta
-     */
+   * @param {SimpleUpdater.Meta} meta
+   */
   downloadUpdate(meta) {
     this.downloadUpdateFile(meta)
       .then(() => {
@@ -32,40 +29,63 @@ class Linux extends Platform {
   }
 
   /**
-     * @param {boolean} restartRequired
-     */
+   * @param {boolean} restartRequired
+   */
   quitAndInstall(restartRequired = true) {
     if (!this.lastUpdatePath) {
       return;
     }
 
     electronApi.offApp('will-quit', this.quitAndInstall);
+    // See: https://bit.ly/3whvwQP
+    const updateScript = `
+    updateAppImage() {
+      if [ "\${RESTART_REQUIRED}" = 'true' ]; then
+        rm -f "\${APP_IMAGE}";
+        mv "\${UPDATE_FILE}" "\${APP_IMAGE}";
+        chmod +x "\${APP_IMAGE}";
+        (exec "\${APP_IMAGE}") & disown $!
+      else
+        (sleep 2 && \
+         rm "\${APP_IMAGE}" && \
+         mv "\${UPDATE_FILE}" "\${APP_IMAGE}" && \
+         chmod +x "\${APP_IMAGE}") & disown $!
+      fi
+      kill "\${OLD_PID}" $(ps -h --ppid "\${OLD_PID}" -o pid)
+    }
+    if [ -z $TERM ]; then
+        # if not run via terminal, log everything into a log file
+        updateAppImage 2>&1 >> /home/kiosk/updater.log
+    else
+        # run via terminal, only output to screen
+        updateAppImage
+    fi
 
-    const appImagePath = this.getAppImagePath();
-    console.log('Updater: Unlinkin old app image', { appImagePath });
-    fs.unlinkSync(appImagePath);
+    `;
 
-    console.log('Updater: Moving new file into place', { appImagePath });
-    execFileSync('mv', ['-f', this.lastUpdatePath, appImagePath]);
-    const env = {
-      ...process.env,
-      APPIMAGE_SILENT_INSTALL: 'true',
-    };
-    spawn(appImagePath, [], {
+    const proc = spawn('/bin/bash', ['-c', updateScript], {
       detached: true,
       stdio: 'ignore',
-      env,
-    })
-      .unref();
-    if (restartRequired) {
+      env: {
+        ...process.env,
+        APP_IMAGE: this.getAppImagePath(),
+        OLD_PID: process.pid,
+        RESTART_REQUIRED: String(restartRequired),
+        UPDATE_FILE: this.lastUpdatePath,
+      },
+    });
+    proc.unref();
+
+    if (restartRequired === true) {
       electronApi.quit();
+      process.exit();
     }
   }
 
   /**
-     * @param {SimpleUpdater.Meta} meta
-     * @package
-     */
+   * @param {SimpleUpdater.Meta} meta
+   * @package
+   */
   async downloadUpdateFile(meta) {
     this.lastUpdatePath = this.getUpdatePath(meta.version);
 
