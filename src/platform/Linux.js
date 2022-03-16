@@ -42,9 +42,10 @@ class Linux extends Platform {
       if [ "\${RESTART_REQUIRED}" = 'true' ]; then
         rm -f "\${APP_IMAGE}";
         mv "\${UPDATE_FILE}" "\${APP_IMAGE}";
+        chmod +x "\${APP_IMAGE}";
         (exec "\${APP_IMAGE}") & disown $!
       else
-        (sleep 2 && rm "\${APP_IMAGE}" &&  mv "\${UPDATE_FILE}" "\${APP_IMAGE}") & disown $!
+        (sleep 2 && rm "\${APP_IMAGE}" && mv "\${UPDATE_FILE}" "\${APP_IMAGE}" && chmod +x "\${APP_IMAGE}") & disown $!
       fi
       kill "\${OLD_PID}" $(ps -h --ppid "\${OLD_PID}" -o pid)
     `;
