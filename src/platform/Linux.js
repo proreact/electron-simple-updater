@@ -53,19 +53,11 @@ class Linux extends Platform {
       fi
       kill "\${OLD_PID}" $(ps -h --ppid "\${OLD_PID}" -o pid)
     }
-    if [ -z $TERM ]; then
-        # if not run via terminal, log everything into a log file
-        updateAppImage 2>&1 >> /home/kiosk/updater.log
-    else
-        # run via terminal, only output to screen
-        updateAppImage
-    fi
-
+    updateAppImage
     `;
     this.logger.info({
       updateScript,
       env: {
-        ...process.env,
         APP_IMAGE: this.getAppImagePath(),
         OLD_PID: process.pid,
         RESTART_REQUIRED: String(restartRequired),
