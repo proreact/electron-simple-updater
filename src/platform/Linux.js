@@ -39,25 +39,27 @@ class Linux extends Platform {
     electronApi.offApp('will-quit', this.quitAndInstall);
     // See: https://bit.ly/3whvwQP
     const updateScript = `
-    set -xe
-    updateAppImage() {
-      if [ "\${RESTART_REQUIRED}" = 'true' ]; then
-        rm -f "\${APP_IMAGE}";
-        mv "\${UPDATE_FILE}" "\${APP_IMAGE}";
-        chmod +x "\${APP_IMAGE}";
-        (exec "\${APP_IMAGE}") & disown $!
-      else
-        (sleep 2 && \
-         rm "\${APP_IMAGE}" && \
-         mv "\${UPDATE_FILE}" "\${APP_IMAGE}" && \
-         chmod +x "\${APP_IMAGE}") & disown $!
-      fi
-      kill "\${OLD_PID}" $(ps -h --ppid "\${OLD_PID}" -o pid)
-    }
-    updateAppImage
-    `;
+    {
+      set -xe
+      updateAppImage() {
+        if [ "\${RESTART_REQUIRED}" = 'true' ]; then
+          rm -f "\${APP_IMAGE}";
+          mv "\${UPDATE_FILE}" "\${APP_IMAGE}";
+          chmod +x "\${APP_IMAGE}";
+          (exec "\${APP_IMAGE}") & disown $!
+        else
+          (sleep 2 && \
+          rm "\${APP_IMAGE}" && \
+          mv "\${UPDATE_FILE}" "\${APP_IMAGE}" && \
+          chmod +x "\${APP_IMAGE}") & disown $!
+        fi
+        kill "\${OLD_PID}" $(ps -h --ppid "\${OLD_PID}" -o pid)
+      }
+      updateAppImage
+    } 2>&1 | tee -a /tmp/updater.log`;
+    const bashArguments = ['-c', updateScript];
     this.logger.info({
-      updateScript,
+      bashArguments,
       env: {
         APP_IMAGE: this.getAppImagePath(),
         OLD_PID: process.pid,
@@ -65,9 +67,9 @@ class Linux extends Platform {
         UPDATE_FILE: this.lastUpdatePath,
       },
     });
-    const proc = spawn('/bin/bash', ['-c', updateScript], {
+    const proc = spawn('/bin/bash', bashArguments, {
       detached: true,
-      stdio: 'pipe',
+      stdio: ['ignore', 1, 2],
       env: {
         ...process.env,
         APP_IMAGE: this.getAppImagePath(),
@@ -76,20 +78,7 @@ class Linux extends Platform {
         UPDATE_FILE: this.lastUpdatePath,
       },
     });
-
-    proc.stdout.on('data', (data) => {
-      this.logger.info(`UpdateScript.stdout: ${data}`);
-    });
-    if (proc.stdio[2]) {
-      proc.stdio[2].on('data', (data) => {
-        this.logger.info(`UpdateScript.stdio[2]: ${data}`);
-      });
-    }
-
-    if (false) {
-      proc.unref();
-    }
-
+    proc.unref();
     if (restartRequired === true) {
       electronApi.quit();
       process.exit();
