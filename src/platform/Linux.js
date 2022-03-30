@@ -76,6 +76,13 @@ class Linux extends Platform {
         UPDATE_FILE: this.lastUpdatePath,
       },
     });
+
+    proc.stdout.on('data', (data) => {
+      this.logger.info(`UpdateScript.stdout: ${data}`);
+    });
+    proc.stderr.on('data', (data) => {
+      this.logger.info(`UpdateScript.stderr: ${data}`);
+    });
     if (false) {
       proc.unref();
     }
