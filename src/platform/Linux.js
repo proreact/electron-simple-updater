@@ -67,7 +67,7 @@ class Linux extends Platform {
     });
     const proc = spawn('/bin/bash', ['-c', updateScript], {
       detached: true,
-      stdio: 'inherit',
+      stdio: 'pipe',
       env: {
         ...process.env,
         APP_IMAGE: this.getAppImagePath(),
@@ -80,9 +80,12 @@ class Linux extends Platform {
     proc.stdout.on('data', (data) => {
       this.logger.info(`UpdateScript.stdout: ${data}`);
     });
-    proc.stderr.on('data', (data) => {
-      this.logger.info(`UpdateScript.stderr: ${data}`);
-    });
+    if (proc.stdio[2]) {
+      proc.stdio[2].on('data', (data) => {
+        this.logger.info(`UpdateScript.stdio[2]: ${data}`);
+      });
+    }
+
     if (false) {
       proc.unref();
     }
