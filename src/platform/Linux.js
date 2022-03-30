@@ -62,7 +62,16 @@ class Linux extends Platform {
     fi
 
     `;
-
+    this.logger.info({
+      updateScript,
+      env: {
+        ...process.env,
+        APP_IMAGE: this.getAppImagePath(),
+        OLD_PID: process.pid,
+        RESTART_REQUIRED: String(restartRequired),
+        UPDATE_FILE: this.lastUpdatePath,
+      },
+    });
     const proc = spawn('/bin/bash', ['-c', updateScript], {
       detached: true,
       stdio: 'ignore',
