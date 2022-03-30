@@ -74,7 +74,7 @@ class Linux extends Platform {
     });
     const proc = spawn('/bin/bash', ['-c', updateScript], {
       detached: true,
-      stdio: 'ignore',
+      stdio: 'inherit',
       env: {
         ...process.env,
         APP_IMAGE: this.getAppImagePath(),
