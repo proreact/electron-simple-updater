@@ -39,6 +39,7 @@ class Linux extends Platform {
     electronApi.offApp('will-quit', this.quitAndInstall);
     // See: https://bit.ly/3whvwQP
     const updateScript = `
+    set -xe
     updateAppImage() {
       if [ "\${RESTART_REQUIRED}" = 'true' ]; then
         rm -f "\${APP_IMAGE}";
@@ -75,7 +76,9 @@ class Linux extends Platform {
         UPDATE_FILE: this.lastUpdatePath,
       },
     });
-    proc.unref();
+    if (false) {
+      proc.unref();
+    }
 
     if (restartRequired === true) {
       electronApi.quit();
